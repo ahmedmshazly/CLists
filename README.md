@@ -8,7 +8,7 @@ This repository contains the implementation of a linked list as specified for th
 To compile the code, ensure that you have a C compiler such as `gcc` installed. Navigate to the directory containing the source files and run the following command:
 
 ```bash
-gcc -o linked_list main.c clist.c -Wall -Wextra -fsanitize=address
+gcc -o linked_list clist_test.c clist.c clist.h -Wall -Wextra -fsanitize=address
 ```
 
 This command will compile the source files main.c and clist.c into an executable named linked_list. It enables all compiler warnings with -Wall and -Wextra, and includes the AddressSanitizer library with -fsanitize=address to detect memory leaks and other memory-related issues.
