@@ -11,6 +11,34 @@
 
 #include "clist.h"
 
+#include <stdio.h>
+#include <assert.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include "clist.h"
+
+
+// Define the INVALID_RETURN for the tests that use it
+#define INVALID_RETURN NULL
+
+// Helper function to log errors and continue execution
+void log_error(const char *message, const char *file, int line) {
+  fprintf(stderr, "Error: %s in %s at line %d\n", message, file, line);
+}
+
+// Wrapper function to handle test execution and error logging
+int run_test(int (*test_func)(), const char *name) {
+  int result = 0;
+  printf("Running %s...\n", name);
+  result = test_func();
+  if (!result) {
+    log_error("Test failed", __FILE__, __LINE__);
+  } else {
+    printf("%s passed.\n", name);
+  }
+  return result;
+}
 
 // Some known testdata, for testing
 const char *testdata[] = {"Zero", "One", "Two", "Three", "Four", "Five",
@@ -94,39 +122,59 @@ int test_cl_push_pop()
   return ret;
 }
 
-/*
- * Tests the CL_append function
- *
- * Returns: 1 if all tests pass, 0 otherwise
- */
-int test_cl_append() {
-  int ret = 0;
-  CList list = CL_new();
+// Mine
+int test_CL_append() {
+  printf("Testing CL_append...\n");
 
-  // Test appending to an empty list
-  CL_append(list, testdata[0]);
-  test_assert(CL_length(list) == 1); // Ensure the list count is updated correctly
-  test_compare(CL_nth(list, 0), testdata[0]); // Ensure the appended element is correct
+  CList list = CL_new();  // Create a new list
+  assert(CL_length(list) == 0);  // Initially, the list should be empty
 
-  // Test appending multiple items
-  for (int i = 1; i < num_testdata; i++) {
-    CL_append(list, testdata[i]);
-    test_assert(CL_length(list) == i + 1); // Verify length is incrementing correctly
-    test_compare(CL_nth(list, i), testdata[i]); // Check each appended item
-  }
+  // Append elements to the list
+  CL_append(list, "alpha");
+  CL_append(list, "bravo");
+  CL_append(list, "charlie");
 
-  // Ensure full list content is correct
-  for (int i = 0; i < num_testdata; i++) {
-    test_compare(CL_nth(list, i), testdata[i]); // Verify correct order and content
-  }
+  // Check if the list length is correct
+  assert(CL_length(list) == 3);
 
-  ret = 1; // Indicate success
+  // Verify the order of elements
+  assert(strcmp(CL_nth(list, 0), "alpha") == 0);
+  assert(strcmp(CL_nth(list, 1), "bravo") == 0);
+  assert(strcmp(CL_nth(list, 2), "charlie") == 0);
 
-  test_error:
-      CL_free(list);
-  return ret;
+  // Print results to verify visually in DEBUG mode
+  printf("List after appending: ");
+  CL_print(list);
+
+  // Free the list at the end of the test
+  CL_free(list);
+
+  printf("CL_append test passed.\n");
+  return 1;
 }
 
+
+int test_cl_append()
+{
+  int ret = 0;
+  CList list = CL_new();
+  
+  // Append all the items
+  for (int i=0; i < num_testdata; i++) {
+    CL_append(list, testdata[i]);
+    test_assert( CL_length(list) == i+1 );
+  }
+
+  // the list is in the right order
+  for (int i=0; i < num_testdata; i++)
+    test_compare( CL_nth(list, i), testdata[i] );
+
+  ret = 1;
+
+ test_error:
+  CL_free(list);
+  return ret;
+}
 
 
 /*
@@ -151,9 +199,7 @@ int test_cl_nth()
   test_assert( CL_length(list) == 1 );
   test_invalid( CL_nth(list, -3) );
   test_invalid( CL_nth(list, -2) );
-
   test_compare( CL_nth(list, -1), testdata[2]);
-
   test_compare( CL_nth(list, 0), testdata[2]);
   test_invalid( CL_nth(list, 1) );
   test_invalid( CL_nth(list, 2) );
@@ -181,9 +227,6 @@ int test_cl_nth()
 }
 
 
-
-
-
 /*
  * A demonstration of how to use a CList, which also doubles as a
  * test case.
@@ -198,12 +241,13 @@ int sample_clist_usage()
   // new lists have length 0
   test_assert( CL_length(list) == 0 );
 
-  CL_push(list, "alpha");
-  CL_push(list, "bravo");
-  CL_push(list, "charlie");
+  CL_push(list, "alpha");       // push 'alpha' onto front of list
+  CL_push(list, "bravo");       // push 'bravo' onto front of list
+  CL_push(list, "charlie");     // push 'charlie' onto front of list
 
+  // list is now charlie, bravo, alpha
 
-  CL_print(list);
+  CL_print(list);               // print out the list: charlie, bravo, alpha
 
   test_assert( CL_length(list) == 3 );
 
@@ -211,8 +255,8 @@ int sample_clist_usage()
   test_compare( CL_pop(list), "charlie" );
   test_assert( CL_length(list) == 2 );
 
-  CL_insert(list, "delta", 2);
-  CL_append(list, "echo");
+  CL_insert(list, "delta", 2);    // insert 'delta' at position 2
+  CL_append(list, "echo");        // append 'echo' at end of list
   CL_insert(list, "foxtrot", -2); // insert 'foxtrot' one before end
 
   // list is now: bravo, alpha, delta, foxtrot, echo
@@ -220,7 +264,7 @@ int sample_clist_usage()
 
   // retrieve the 3rd element, numbering from 0, so it should be foxtrot
   test_compare( CL_nth(list, 3), "foxtrot" );
-
+  
   // list hasn't changed
   test_assert( CL_length(list) == 5 );
 
@@ -241,10 +285,10 @@ int sample_clist_usage()
   // remove the first item from the copy
   test_compare( CL_remove(list_copy, 0), "echo" );
   test_assert( CL_length(list_copy) == 3 );
-
+  
   // original list should be unchanged
   test_assert( CL_length(list) == 4 );
-
+  
   // join the two lists; note this operation empties list_copy
   CL_join(list, list_copy);
 
@@ -263,24 +307,243 @@ int sample_clist_usage()
   return ret;
 }
 
+//Mine
+int test_CL_insert() {
+  printf("Testing CL_insert...\n");
+  int result = 1;  
+  CList list = CL_new();
+
+  // Test inserting at the beginning
+  if (!CL_insert(list, "charlie", 0)) {
+    printf("Failed to insert 'charlie' at position 0.\n");
+    result = 0;  // failure
+  }
+
+  if (!CL_insert(list, "bravo", 0)) {
+    printf("Failed to insert 'bravo' at position 0.\n");
+    result = 0;  // failure
+  }
+
+  if (!CL_insert(list, "alpha", 0)) {
+    printf("Failed to insert 'alpha' at position 0.\n");
+    result = 0;  //  failure
+  }
+
+  // Verify insertion results
+  const char* item = CL_nth(list, 0);
+  if (strcmp(item, "alpha") != 0) {
+    printf("Incorrect item at position 0: expected 'alpha', got '%s'.\n", item);
+    result = 0;  // failure
+  }
+
+  // Test inserting at the end (index equal to length of list)
+  if (!CL_insert(list, "delta", CL_length(list))) {
+    printf("Failed to insert 'delta' at the end.\n");
+    result = 0;  //    failure
+  }
+
+  // Test inserting in the middle
+  if (!CL_insert(list, "beta", 2)) {
+    printf("Failed to insert 'beta' at position 2.\n");
+    result = 0;  // failure
+  }
+
+  // Test inserting out of bounds, should fail
+  if (CL_insert(list, "echo", -10)) {
+    printf("Insertion out of bounds (-10) should not succeed.\n");
+    result = 0;  // failure
+  }
+
+  if (CL_insert(list, "foxtrot", 100)) {
+    printf("Insertion out of bounds (100) should not succeed.\n");
+    result = 0;  // failure
+  }
+
+  CL_print(list); 
+  CL_free(list);
+  printf("CL_insert test %s.\n", result ? "passed" : "failed");
+  return result;
+}
+
+
+
+//Mine
+int test_CL_remove() {
+  printf("Testing CL_remove...\n");
+  int result = 1;   
+  CList list = CL_new();
+
+  // Populate the list
+  CL_append(list, "alpha");
+  CL_append(list, "beta");
+  CL_append(list, "gamma");
+  CL_append(list, "delta");
+
+  // Test removing the head
+  const char* removed = CL_remove(list, 0);
+  if (!removed || strcmp(removed, "alpha") != 0) {
+    printf("Failed to remove the head: expected 'alpha', got '%s'.\n", removed ? removed : "NULL");
+    result = 0;  //    failure
+  }
+
+  // Test removing from middle
+  removed = CL_remove(list, 1);  // After removal of 'alpha', 'gamma' is now at index 1
+  if (!removed || strcmp(removed, "gamma") != 0) {
+    printf("Failed to remove from middle: expected 'gamma', got '%s'.\n", removed ? removed : "NULL");
+    result = 0;  //    failure
+  }
+
+  // Test removing the last element
+  removed = CL_remove(list, 1);  // Now 'delta' should be at index 1 after removing 'gamma'
+  if (!removed || strcmp(removed, "delta") != 0) {
+    printf("Failed to remove the last element: expected 'delta', got '%s'.\n", removed ? removed : "NULL");
+    result = 0;  //    failure
+  }
+
+  // Verify final list structure and length
+  if (CL_length(list) != 1 || strcmp(CL_nth(list, 0), "beta") != 0) {
+    printf("List structure incorrect after removals: expected length 1 with 'beta', got length %d.\n", CL_length(list));
+    result = 0;  //    failure
+  }
+
+  CL_print(list);
+  CL_free(list);
+  printf("CL_remove test %s.\n", result ? "passed" : "failed");
+  return result;
+}
+
+
+
+//Mine
+int test_CL_copy() {
+  printf("Testing CL_copy...\n");
+  int result = 1;   
+  CList original = CL_new();
+  CL_append(original, "alpha");
+  CL_append(original, "beta");
+
+  // Copy the list
+  CList copied = CL_copy(original);
+
+  // Check initial identical content
+  if (CL_length(copied) != 2 || strcmp(CL_nth(copied, 0), "alpha") != 0 || strcmp(CL_nth(copied, 1), "beta") != 0) {
+    printf("Copied list content mismatch or incorrect length.\n");
+    result = 0;  //    failure
+  }
+
+  // Modify original
+  CL_append(original, "gamma");
+
+  // Ensure copied list is unaffected by changes to original
+  if (CL_length(copied) != 2) {
+    printf("Copied list was affected by modifications to the original list.\n");
+    result = 0;  //    failure
+  }
+
+  // Cleanup
+  CL_free(original);
+  CL_free(copied);
+
+  printf("CL_copy test %s.\n", result ? "passed" : "failed");
+  return result;
+}
+
+
+
+//Mine
+int test_CL_reverse() {
+  printf("Testing CL_reverse...\n");
+  int result = 1;   
+  CList list = CL_new();
+  CL_append(list, "alpha");
+  CL_append(list, "beta");
+  CL_append(list, "gamma");
+
+  // Reverse the list
+  CL_reverse(list);
+
+  // Verify the order is reversed
+  if (strcmp(CL_nth(list, 0), "gamma") != 0 ||
+      strcmp(CL_nth(list, 1), "beta") != 0 ||
+      strcmp(CL_nth(list, 2), "alpha") != 0) {
+    printf("List order after reverse is incorrect.\n");
+    printf("Expected order: 'gamma', 'beta', 'alpha'. Actual order: '%s', '%s', '%s'.\n",
+           CL_nth(list, 0), CL_nth(list, 1), CL_nth(list, 2));
+    result = 0;  //    failure
+      }
+
+  printf("List after reversal: ");
+  CL_print(list);
+
+  // Clean up
+  CL_free(list);
+  printf("CL_reverse test %s.\n", result ? "passed" : "failed");
+  return result;
+}
+
+
+//Mine for testing
+void print_element(int pos, const char *element, void *cb_data) {
+  printf("%d: %s %s\n", pos, element, (const char *) cb_data);
+}
+
+// same
+void callback(int pos, const char *element, void *cb_data) {
+  printf("%d: %s %s\n", pos, element, (const char *) cb_data);
+  int *result = (int *) cb_data;
+  const char *expected_elements[] = {"alpha", "beta", "gamma"};
+
+  // Check if the position and element match expected values
+  if (strcmp(element, expected_elements[pos]) != 0) {
+    printf("Element mismatch at position %d: expected '%s', got '%s'.\n", pos, expected_elements[pos], element);
+    *result = 0;  //    failure
+  }
+}
+
+
+//Mine
+int test_CL_foreach() {
+  printf("Testing CL_foreach...\n");
+  int result = 1;   
+  CList list = CL_new();
+  CL_append(list, "alpha");
+  CL_append(list, "beta");
+  CL_append(list, "gamma");
+
+  // Apply CL_foreach with the callback and pass result as part of callback data
+  CL_foreach(list, callback, &result);
+
+  if (result) {
+    printf("CL_foreach test passed.\n");
+  } else {
+    printf("CL_foreach test failed.\n");
+  }
+
+  CL_free(list);
+  return result;
+}
+
+
+
+
 
 int main() {
   int passed = 0;
   int num_tests = 0;
 
-  num_tests++; passed += test_cl_push_pop();
-  printf("Passed Push test cases\n");
-  num_tests++; passed += test_cl_nth();
-  printf("Passed nth test cases\n");
-  num_tests++; passed += test_cl_append();
-  printf("Passed append test cases\n");
+  passed += run_test(test_cl_push_pop, "test_cl_push_pop");
+  passed += run_test(test_cl_append, "test_cl_append");
+  passed += run_test(test_cl_nth, "test_cl_nth");
+  passed += run_test(sample_clist_usage, "sample_clist_usage");
+  passed += run_test(test_CL_insert, "test_CL_insert");
+  passed += run_test(test_CL_remove, "test_CL_remove");
+  passed += run_test(test_CL_copy, "test_CL_copy");
+  passed += run_test(test_CL_reverse, "test_CL_reverse");
+  passed += run_test(test_CL_foreach, "test_CL_foreach");
 
-  // this one has an error that I couldn't locate.
-  // num_tests++; passed += sample_clist_usage();
-  printf("Passed usage test cases\n");
+  num_tests = 9;
 
   printf("Passed %d/%d test cases\n", passed, num_tests);
   fflush(stdout);
-  return 0;
+  return (passed == num_tests) ? 0 : 1;
 }
-
