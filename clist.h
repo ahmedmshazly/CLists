@@ -6,7 +6,6 @@
  * Author: <your name here>
  */
 
-
 #ifndef _CLIST_H_
 #define _CLIST_H_
 
@@ -19,20 +18,6 @@ typedef struct _clist *CList;
 // list type simply by changing this typedef and the definition for
 // INVALID_RETURN
 typedef const char * CListElementType;
-
-
-
-
-typedef struct _cl_node {
- char *element;
- struct _cl_node *next;
-} _cl_node;
-
-typedef struct _clist {
- _cl_node *head;
- int length;
-} _clist, *CList;
-
 
 // Used to indicate an error on some functions
 #define INVALID_RETURN NULL
@@ -253,7 +238,7 @@ void CL_join(CList list1, CList list2);
 void CL_reverse(CList list);
 
 
-typedef void (*CL_foreach_callback)(int pos, CListElementType element, void *cb_data);
+typedef void (*CL_foreach_callback)(int pos, const char *element, void *cb_data);
 
 /*
  * Iterate through the list; call the user-specified callback function
@@ -269,21 +254,6 @@ typedef void (*CL_foreach_callback)(int pos, CListElementType element, void *cb_
  * Returns: None
  */
 void CL_foreach(CList list, CL_foreach_callback callback, void *cb_data);
-
-
-
-
-// Function to check if the list is empty
-int CL_is_empty(CList list);
-
-// Function to retrieve the element at the head of the list
-const char* CL_head_element(CList list);
-
-
-CList CL_new();
-
-
-void CL_free(CList list);
 
 
 
