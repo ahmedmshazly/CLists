@@ -3,7 +3,7 @@
  * 
  * Linked list implementation for ISSE Assignment 5
  *
- * Author: AHMED MOHAMED (amohame2)
+ * Author: <your name here>
  */
 
 #include <stdio.h>
@@ -13,11 +13,19 @@
 
 #include "clist.h"
 
-#define MAX_PTRS 1024
 #define DEBUG
 
-void* valid_ptrs[MAX_PTRS];
-int num_valid_ptrs = 0;
+struct _cl_node {
+  CListElementType element;
+  struct _cl_node *next;
+};
+
+struct _clist {
+  struct _cl_node *head;
+  int length;
+};
+
+
 
 /*
  * Create (malloc) a new _cl_node and populate it with the supplied
@@ -28,23 +36,14 @@ int num_valid_ptrs = 0;
  * 
  * Returns: The newly-malloc'd node, or NULL in case of error
  */
-// static struct _cl_node* _CL_new_node(CListElementType element, struct _cl_node *next)
-// {
-//   struct _cl_node* new = (struct _cl_node*) malloc(sizeof(struct _cl_node));
-//
-//   assert(new);
-//
-//   new->element = element;
-//   new->next = next;
-//
-//   return new;
-// }
-
-static struct _cl_node* _CL_new_node(CListElementType element, struct _cl_node *next) {
+static struct _cl_node*
+_CL_new_node(CListElementType element, struct _cl_node *next)
+{
   struct _cl_node* new = (struct _cl_node*) malloc(sizeof(struct _cl_node));
+
   assert(new);
 
-  new->element = strdup(element);
+  new->element = element;
   new->next = next;
 
   return new;
@@ -53,82 +52,33 @@ static struct _cl_node* _CL_new_node(CListElementType element, struct _cl_node *
 
 
 // Documented in .h file
-CList CL_new() {
-  CList list = malloc(sizeof(*list));
-  if (list == NULL) {
-    return NULL;
-  }
+CList CL_new()
+{
+  CList list = (CList) malloc(sizeof(struct _clist));
+  assert(list);
+
   list->head = NULL;
   list->length = 0;
+
   return list;
 }
 
-void register_ptr(void* ptr) {
-  if (num_valid_ptrs < MAX_PTRS) {
-    valid_ptrs[num_valid_ptrs++] = ptr;
-  }
-}
 
-void unregister_ptr(void* ptr) {
-  for (int i = 0; i < num_valid_ptrs; i++) {
-    if (valid_ptrs[i] == ptr) {
-      valid_ptrs[i] = valid_ptrs[--num_valid_ptrs];
-      break;
-    }
-  }
-}
-
-
-void* debug_malloc(size_t size) {
-  void* ptr = malloc(size);
-  if (ptr) {
-    register_ptr(ptr);
-  }
-  return ptr;
-}
-
-void debug_free(void* ptr) {
-  unregister_ptr(ptr);
-  free(ptr);
-}
-
-
-bool IsValidMemory(void* ptr) {
-  for (int i = 0; i < num_valid_ptrs; i++) {
-    if (valid_ptrs[i] == ptr) {
-      return true;
-    }
-  }
-  return false;
-}
 
 // Documented in .h file
 void CL_free(CList list) {
-
-  assert(list);
-  struct _cl_node* current = list->head;
-  if (current == NULL) {
-    return;
-  }
-
-  struct _cl_node *next_node;
+  struct _cl_node *current = list->head;
+  struct _cl_node *next;
 
   while (current != NULL) {
-    if (!IsValidMemory(current)) {
-      break; // memory is corrupted
-    }
-    next_node = current->next;
-    free(current->element);
+    next = current->next;
+    free((void *)current->element);
     free(current);
-    current = next_node;
+    current = next;
   }
-  if (!IsValidMemory(list)) {
-    return;  // Exit & avoid crashing
-  }
+
   free(list);
 }
-
-
 
 
 
@@ -188,10 +138,8 @@ CListElementType CL_pop(CList list)
 
   CListElementType ret = popped_node->element;
 
-  // unlink previous head node, then free it
   list->head = popped_node->next;
   free(popped_node);
-  // we cannot refer to popped node any longer
 
   list->length--;
 
@@ -203,24 +151,23 @@ CListElementType CL_pop(CList list)
 // Documented in .h file
 void CL_append(CList list, CListElementType element)
 {
-  assert(list);
+    assert(list);  // Ensure the list is valid
 
-  struct _cl_node *new_node = _CL_new_node(element, NULL);
-  assert(new_node);  // new node created successfully
+    struct _cl_node *new_node = _CL_new_node(element, NULL);  // Create new node with no next node
+    assert(new_node);  // Ensure the node was created successfully
 
-  if (list->head == NULL) {
-
-    list->head = new_node;
-  } else {
-    // other --> find last node
-    struct _cl_node *current = list->head;
-    while (current->next != NULL) {
-      current = current->next;
+    if (list->head == NULL) {
+        // If the list is empty, the new node becomes the head
+        list->head = new_node;
+    } else {
+        // Otherwise, traverse to the end of the list and append the new node
+        struct _cl_node *current = list->head;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = new_node;
     }
-    current->next = new_node;
-  }
-
-  list->length++;  // Increment list len
+    list->length++;  // Increment the length of the list
 }
 
 
@@ -229,21 +176,16 @@ void CL_append(CList list, CListElementType element)
 
 // Documented in .h file
 CListElementType CL_nth(CList list, int pos) {
+  assert(list);
   if (pos < 0) {
-    pos = list->length + pos; // Convert - index to +
+    pos += list->length;  // Handle negative indices
   }
-  if (pos < 0 || pos >= list->length) {
-    fprintf(stderr, "Index out of bounds\n");
-    return NULL; //
-  }
-
   struct _cl_node *current = list->head;
-  for (int i = 0; i < pos; i++) {
-    if (current == NULL) {
-      fprintf(stderr, "Unexpected NULL node in list\n");
-      return NULL;
-    }
+  for (int i = 0; current != NULL && i < pos; i++) {
     current = current->next;
+  }
+  if (current == NULL) {
+    return INVALID_RETURN;  // Out of bounds
   }
   return current->element;
 }
@@ -253,23 +195,29 @@ CListElementType CL_nth(CList list, int pos) {
 
 // Documented in .h file
 bool CL_insert(CList list, CListElementType element, int pos) {
-  if (pos < 0 || pos > list->length) {
-    fprintf(stderr, "Index out of range\n");
-    return false;
+  assert(list);  // Ensure the list is valid
+
+  if (pos < 0) {
+    pos = list->length + pos + 1;  // Convert negative index to positive
+    if (pos < 0) return false;  // Out of range
   }
 
-  if (pos == 0) {  // Insert at head
-    CL_push(list, element);
+  if (pos == 0) {  // Insert at the head
+    list->head = _CL_new_node(element, list->head);
+    list->length++;
     return true;
   }
 
-  struct _cl_node* current = list->head;
-  for (int i = 0; i < pos - 1; i++) {
+  struct _cl_node *current = list->head;
+  for (int i = 0; current != NULL && i < pos - 1; i++) {
     current = current->next;
   }
 
-  struct _cl_node* new_node = _CL_new_node(element, current->next);
+  if (current == NULL) return false;  // Out of range
 
+  // Normal insertion
+  struct _cl_node *new_node = _CL_new_node(element, current->next);
+  if (new_node == NULL) return false;  // Memory allocation failed
 
   current->next = new_node;
   list->length++;
@@ -279,163 +227,140 @@ bool CL_insert(CList list, CListElementType element, int pos) {
 
 
     
-// Documented in .h file
 CListElementType CL_remove(CList list, int pos) {
-  if (pos < 0 || pos >= list->length) {
-    fprintf(stderr, "Index out of bounds\n"); // reused
-    return INVALID_RETURN;
+  assert(list);  // Ensure the list is valid
+
+  if (pos < 0) {
+    pos = list->length + pos;  // Convert negative index to positive
+    if (pos < 0) return INVALID_RETURN;  // Out of range
   }
 
-  if (pos == 0) {
-    return CL_pop(list);
-  }
-
-  struct _cl_node* current = list->head;
-  for (int i = 0; i < pos - 1; i++) {
+  struct _cl_node *current = list->head, *prev = NULL;
+  for (int i = 0; current != NULL && i < pos; i++) {
+    prev = current;
     current = current->next;
   }
 
-  struct _cl_node* target_node = current->next;
-  CListElementType removed_element = target_node->element;
-  current->next = target_node->next;
-  free(target_node->element);
-  free(target_node);
-  list->length--;
+  if (current == NULL) return INVALID_RETURN;  // Out of range if current is NULL
 
-  return removed_element;
+  CListElementType ret = current->element;  // Store the data to be returned
+
+  // If removing the first element
+  if (prev == NULL) {
+    list->head = current->next;
+  } else {
+    prev->next = current->next;  // Bypass the current node
+  }
+
+  free(current);  // Free the node
+  list->length--;  // Decrement the length of the list
+
+  return ret;  // Return the removed element
 }
 
 
 
 
 // Documented in .h file
+CList CL_copy(CList src_list) {
+  assert(src_list);  // Ensure the source list is valid
+
+  CList new_list = CL_new();  // Create a new list
+  if (src_list->head == NULL) return new_list;  // If source is empty, return empty list
+
+  struct _cl_node *src_node = src_list->head;
+  struct _cl_node *new_node = _CL_new_node(src_node->element, NULL);  // Copy the first node
+  assert(new_node);  // Ensure the node was created successfully
+  new_list->head = new_node;
+  new_list->length = 1;
+
+  src_node = src_node->next;  // Move to next node in source list
+
+  struct _cl_node *last_node = new_node;  // Keep track of the last node in new list
+
+  while (src_node != NULL) {
+    new_node = _CL_new_node(src_node->element, NULL);  // Copy each node
+    assert(new_node);  // Ensure the node was created successfully
+    last_node->next = new_node;  // Link the new node to the list
+    last_node = new_node;  // Update the last node pointer
+    src_node = src_node->next;  // Move to next node in source list
+    new_list->length++;  // Increment the length of the new list
+  }
+
+  return new_list;
+}
+
+
+
 int CL_insert_sorted(CList list, CListElementType element) {
   assert(list);
 
-  if (list->head == NULL || element < list->head->element) {
-    CL_push(list, element);
-    return 0;
+  struct _cl_node **tracer = &list->head;
+  while (*tracer && strcmp((*tracer)->element, element) < 0) {
+    tracer = &((*tracer)->next);
   }
-
-  struct _cl_node* current = list->head;
-  struct _cl_node* previous = NULL;
-  int index = 0;
-
-  while (current != NULL && current->element < element) {
-    previous = current;
-    current = current->next;
-    index++;
-  }
-
-  struct _cl_node* new_node = _CL_new_node(element, current);
-  previous->next = new_node;
+  struct _cl_node *new_node = _CL_new_node(element, *tracer);
+  if (!new_node) return -1;  // Failed to allocate memory
+  *tracer = new_node;
   list->length++;
-  return index;
+  return 0;  // Success
 }
 
 
 
 // Documented in .h file
 void CL_join(CList list1, CList list2) {
-  if (list2->head == NULL) {  //if list2 empty, do none
-    return;
-  }
-
-  if (list1->head == NULL) {  //if list1 empty, take all list2
-    list1->head = list2->head;
+  assert(list1);
+  assert(list2);
+  if (list2->head == NULL) return;  // Nothing to join
+  struct _cl_node *current = list1->head;
+  if (current == NULL) {
+    list1->head = list2->head;  // Directly point head to list2's head if list1 is empty
   } else {
-    struct _cl_node* current = list1->head;
-    while (current->next != NULL) {
-      current = current->next;  // find last node of list1
+    while (current->next != NULL) {  // Find the end of list1
+      current = current->next;
     }
-    current->next = list2->head;  //connect to list2 head
+    current->next = list2->head;  // Link the end of list1 to the start of list2
   }
-
-  list1->length += list2->length;  // Update length
-
-  // clear list2
-  list2->head = NULL;
+  list1->length += list2->length;  // Update the length
+  list2->head = NULL;  // Clear list2
   list2->length = 0;
 }
 
 
 
 // Documented in .h file
-// void CL_reverse(CList list)
 void CL_reverse(CList list) {
-  assert(list);
+  assert(list);  // Ensure the list is valid
 
   struct _cl_node *prev = NULL;
   struct _cl_node *current = list->head;
   struct _cl_node *next = NULL;
 
   while (current != NULL) {
-    next = current->next;
-    current->next = prev;
-    prev = current;
+    next = current->next;  // Store next node
+    current->next = prev;  // Reverse current node's pointer
+    prev = current;  // Move prev and current one step forward
     current = next;
   }
-
-  list->head = prev;
+  list->head = prev;  // Reset head to the new first element
 }
+
 
 
 
 // Documented in .h file
 void CL_foreach(CList list, CL_foreach_callback callback, void *cb_data) {
-  assert(list);
-
+  int pos = 0;
   struct _cl_node *current = list->head;
-  int index = 0;
-
   while (current != NULL) {
-    callback(index, current->element, cb_data);
+    callback(pos, current->element, cb_data);
     current = current->next;
-    index++;
+    pos++;
   }
 }
 
 
 
 
-CList CL_copy(CList src_list) {
-  assert(src_list);
 
-  CList new_list = CL_new();
-  if (src_list->head == NULL) {
-    return new_list;
-  }
-
-  struct _cl_node* src_current = src_list->head;
-  struct _cl_node* new_tail = _CL_new_node(src_current->element, NULL);
-
-  new_list->head = new_tail;
-  src_current = src_current->next;
-
-  while (src_current != NULL) {
-    struct _cl_node* new_node = _CL_new_node(src_current->element, NULL);
-
-    new_tail->next = new_node;
-    new_tail = new_node;
-    src_current = src_current->next;
-  }
-
-  new_list->length = src_list->length;
-  return new_list;
-}
-
-
-// helpers that I was debugging with
-
-// Check if a list is empty
-int CL_is_empty(CList list) {
-  return (list == NULL || list->head == NULL);
-}
-
-// get the element of the head node
-const char* CL_head_element(CList list) {
-  if (list != NULL && list->head != NULL) {
-    return list->head->element;
-  }
-  return NULL;
-}
