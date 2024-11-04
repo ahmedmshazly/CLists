@@ -5,7 +5,6 @@
 # CFLAGS=-Wall -Werror -g -fsanitize=address
 CFLAGS=-Wall -Werror -g 
 TARGETS=clist_test
-SRC_DIR=src  # Define source directory
 
 all: $(TARGETS)
 
