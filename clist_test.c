@@ -9,14 +9,14 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "clist.h"
+// #include "./src/clist.c"
 
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 
-#include "clist.h"
+#include "./src/clist.h"
 
 
 // Define the INVALID_RETURN for the tests that use it
