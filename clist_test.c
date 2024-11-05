@@ -16,7 +16,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "./src/clist.h"
+#include "./clist.h"
 
 
 // Define the INVALID_RETURN for the tests that use it
